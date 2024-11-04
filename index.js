@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { log } = require("console");
 
 const app = express();
 const port = 8000;
@@ -10,7 +11,6 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const fluxGenerateRequest = {
-  prompt: "",
   negativeprompt: "",
   controlnetpreviewonly: false,
   debugregionalprompting: false,
@@ -34,11 +34,9 @@ const fluxGenerateRequest = {
   saveintermediateimages: false,
   donotsave: false,
   nopreviews: false,
-  webhooks: "Normal",
   internalbackendtype: "Any",
   noseedincrement: false,
   personalnote: "",
-  colordepth: "8bit",
   modelspecificenhancements: true,
   regionalobjectcleanupfactor: "0",
   maskcompositeunthresholded: false,
@@ -49,7 +47,6 @@ const fluxGenerateRequest = {
   shiftedlatentaverageinit: false,
   automaticvae: true,
   presets: [],
-  session_id: "6A6BCE6CDFAFA3B879BCA5185073F67ADF57C3E6",
 };
 
 io.sockets.on("connection", (socket) => {
@@ -97,14 +94,22 @@ io.sockets.on("connection", (socket) => {
     }
   });
 
-  socket.on("flux-generate", () => {
+  socket.on("flux-generate", (msg) => {
     try {
-      const testMessage = JSON.stringify(fluxGenerateRequest);
-      fluxWs.send(testMessage, (err) => {
+      const params = JSON.parse(msg);
+      const request = {
+        ...fluxGenerateRequest,
+        session_id: params.session_id,
+        prompt: params.prompt,
+      };
+
+      fluxWs.send(JSON.stringify(request), (err) => {
         console.log("err", err);
       });
       io.to(socket.id).emit("flux-generate", true);
     } catch (error) {
+      console.log("error", error);
+
       io.to(socket.id).emit("flux-generate", false);
     }
   });
